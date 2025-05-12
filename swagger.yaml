@@ -1,0 +1,792 @@
+swagger: '2.0'
+info:
+  version: '1.0.0'
+  title: AWG Taxi Service Project
+  description: This is a training project to design a taxi service from scratch
+ 
+# Under securityDefinitions we declare which security schemes can be used.
+# These definitions do not affect to the operations, but can be applied
+# using the 'security' key at the global level or the operation level.
+# In this sample, we'll see how to apply the security definition globally,
+# and override it at the operation level.
+#
+# Note that for Access Code Flow, you must provide the Token URL.
+securityDefinitions:
+  accessCode:
+    type: oauth2
+    # This should be updated to the Token URL of your OAuth provider.
+    tokenUrl: http://example.com/oauth/token
+    # This should be updated to the Authorization URL of your OAuth provider.
+    authorizationUrl: http://example.com/oauth/auth
+    flow: accessCode
+    scopes:
+      write: allows modifying resources
+      read: allows reading resources
+
+# Here we apply the security flow called 'accessCode' globally to all the operations in the spec. 
+# This security scheme is defined above in the 'securityDefinitions' section.
+# Global security can be overridden an operation level as seen in the example below
+security:
+  - accessCode:
+    - read
+    - write
+paths:
+  /customers:
+    get:
+      tags:
+      - customers
+      summary: Получение списка клиентов
+      responses:
+        '200':
+          description: OK
+  
+    post:
+      tags:
+      - customers
+      summary: Создание клиента
+      responses:
+        '201':
+          description: OK  
+          
+  /customers/{customer_id}:
+    get:
+      tags:
+      - customers
+      summary: Чтение данных конкретного клиента
+      responses:
+        '200':
+          description: OK
+      parameters:
+      - name: customer_id
+        type: string
+        in: path
+        description: ID 
+        required: true
+    
+    patch: 
+      tags:
+      - customers
+      summary: Изменеие данных клиента
+      x-notes: на MVP доступно только изменение customer.name
+      responses:
+        '200':
+          description: OK
+      parameters:
+      - name: customer_id
+        type: string
+        in: path
+        description: ID 
+        required: true
+        
+    delete:
+      tags:
+      - customers
+      summary: Удаление данных клиента
+      x-dev-notes: Логическое удаление - устанавливается customer.is_deleted = true
+      responses:
+        '200':
+          description: OK
+      parameters:
+      - name: customer_id
+        type: string
+        in: path
+        description: ID 
+        required: true
+    
+    
+  /customers/{customer_id}/requests:
+    get:
+      tags:
+      - requests
+      - customers
+      summary: Получение списка Заявок клиента
+      responses:
+        '200':
+          description: OK
+      parameters:
+      - name: customer_id
+        type: string
+        in: path
+        description: ID 
+        required: true
+  
+  /customers/{customer_id}/trips:
+    get:
+      tags:
+      - trips
+      - customers
+      summary: Получение списка Поездок клиента
+      responses:
+        '200':
+          description: OK
+      parameters:
+      - name: customer_id
+        type: string
+        in: path
+        description: ID 
+        required: true
+  
+  
+  /requests:
+    post:
+      tags:
+      - requests
+      summary: Создание заявки
+      responses:
+        '201':
+          description: OK
+    
+    get:
+      tags:
+      - requests
+      summary: Получение списка заявок
+      responses:
+        '200':
+          description: OK
+      parameters:
+      - name: request.status_id
+        type: string
+        in: query
+        required: false
+      - name: request.created_at
+        type: string
+        in: query
+        required: false
+  
+  /requests/{request_id}:
+    get:
+      tags:
+      - requests
+      summary: Получение списка Заявок
+      responses:
+        '200':
+          description: OK
+      parameters:
+      - name: request_id
+        type: string
+        in: path
+        description: ID 
+        required: true
+    
+    patch:
+      tags:
+      - requests
+      summary: Изменение деталей Заявки
+      x-notes: Только для правки текстовых полей заявки (например, comment). Не использовать для изменения статуса, времени, адресов, водителя
+      responses:
+        '200':
+          description: OK
+      parameters:
+      - name: request_id
+        type: string
+        in: path
+        description: ID 
+        required: true
+    
+    put:
+      tags:
+      - requests
+      summary: Изменение статуса Заявки
+      x-notes: Эндпоинт используется в сценариях <Оформление заявки клиентом, Подтверждение заявки диспетчером, Назначение водителя на заявку, Отклонение заявки по таймауту назначения водителя, Отказ водителя от заявки, Отмена заявки>
+      responses:
+        '200':
+          description: OK
+      parameters:
+      - name: request_id
+        type: string
+        in: path
+        description: ID 
+        required: true
+    
+    
+    
+    
+  /requests/{request_id}/request-status-history:
+    get:
+      tags:
+      - requests
+      summary: Чтение истории статусов Заявки 
+      responses:
+        '200':
+          description: OK
+      parameters:
+      - name: request_id
+        type: string
+        in: path
+        description: ID 
+        required: true
+        
+  
+  /trips:
+    get:
+      tags:
+      - trips
+      summary: Получение списка Поездок
+      responses:
+        '201':
+          description: OK
+    post:
+      tags:
+      - trips
+      summary: Создание поездки без заявки
+      responses:
+        '201':
+          description: OK
+        
+  /trips/{request_id}/trip:
+    post:
+      tags:
+      - trips
+      - requests
+      summary: Создание поездки по заявке
+      #В запросе требутеся передать данные Заявки, чтобы исключить возможность ошибки в случае, если Сервис Заявок недоступен
+      parameters:
+      - name: request_id
+        type: string
+        in: path
+        description: ID 
+        required: true
+      - name: body
+        in: body
+        schema:
+          type: object
+          required: 
+          - driver_id
+          - trip_fare_id
+          - start_address
+          - finish_address
+          - current_location
+          properties:
+              driver_id:
+                type: string
+                description: валидный GUID Водителя
+                format: GUID длиной 36 символов вместе с разделителями
+                example: f47ac10b-58cc-4372-a567-0e02b2c3d490
+              trip_fare_id:
+                type: string
+                description: Уникальный идентификатор тарифа
+                x-data-source: trip_request.trip_fare_id 
+                example: MSK-ECONOM-202504-V2 
+              estimated_cost:
+                type: number
+                description: Расчётная стоимость поездки на момент создания заявки
+                format: положительное число. Точность два знака после запятой
+                x-dev-notes: trip_request.cost 
+                example: 348.32
+              desired_start_time:
+                type: string
+                description: Желаемая дата и время начала поездки
+                x-data-source: trip_request.desired_start_time 
+                format:  timestamp with time zone
+                example: 2025-04-30 19:41:00+03
+              estimated_duration:
+                type: integer
+                description: Расчетное время в пути 
+                format: целое число секунд
+                x-data-source: trip_request.estimated_duration 
+                example: 1560
+              estimated_distance:
+                type: integer
+                description: Расчетное расстояние 
+                format: целое число метров
+                x-data-source: trip_request.estimated_distance 
+                example: 1785
+              start_location:
+                type: string
+                description: координаты стартовой точки 
+                format: долгота, широта в формате WGS-84
+                x-data-source: trip_request.start_location 
+                example: 134.854434 -25.856081
+              start_address:
+                type: string
+                description: человекочитаемый адрес стартовой точки 
+                format: произвольный
+                x-data-source: trip_request.start_address 
+                example: г. Москва, ул. Ленина, д. 1
+              finish_location:
+                type: string
+                description: координаты финишной точки 
+                format: долгота, широта в формате WGS-84
+                x-data-source: trip_request.finish_location 
+                example: 134.854412 -25.828084
+              finish_address:
+                type: string
+                description: человекочитаемый адрес финишной точки 
+                format: произвольный
+                x-data-source: trip_request.finish_location 
+                example: г. Москва, ул. Арбат, д. 10
+              current_location:
+                type: string
+                description: координаты текущего местоположения водителя [долгота, широта] в формате WGS-84 
+                format: При отсутсвии данных передаем null 
+                x-dev-notes: Если это поле null, обязательно передайте current_address
+                x-data-source: геолокация водителя 
+                example: 134.854789 -25.8280235
+              current_address: 
+                type: string
+                description: Адрес текущего местоположения водителя в текстовом формате. 
+                x-dev-notes:: Обязателен, если current_location = null
+                x-data-source: при недоступности GPS водитель вводит адрес вручную
+                example: г. Москва, ул. Сходненская, д. 1
+
+      responses:
+        '201':
+          description: OK
+          x-message: Поездка создана успешно
+          schema: 
+            type: object
+            properties:
+              id:
+                type: string
+                description: валидный GUID экземпляра
+                format: GUID длиной 36 символов вместе с разделителями
+                example: f47ac10b-58cc-4372-a567-0e02b2c3d479
+              
+              created_at:
+                type: string
+                description: Дата и время создания экземпляра
+                format: timestamp with time zone
+                example: 2025-04-30 11:41:00+03
+              
+              number: 
+                type: string
+                description: Человекочитаемый номер экземпляра
+                format: 2 латинские буквы+2 цифры номера суток в месяце+2 цифры номера месяца+дефис+порядковый номер в рамках суток, 6 цифр
+                example: VS2312-000567
+              
+              status:
+                type: string
+                description: Идентификатор текущего статуса 
+                example: Started
+              
+              status_set_at:
+                type: string
+                description: Дата и время установки текущего статуса
+                format: timestamp with time zone
+                example: 2025-04-30 11:41:00+03
+              
+              is_deleted:
+                type: boolean
+                description: Признак логического удаления экземпляра
+                format: Значение по умолчанию = false. При удалении устанвливается true
+                example: false            
+              
+              driver_id:
+                type: string
+                description: валидный GUID Водителя
+                format: GUID длиной 36 символов вместе с разделителями
+                example: f47ac10b-58cc-4372-a567-0e02b2c3d490
+              
+              trip_fare_id:
+                type: string
+                description: Тариф, применяемый к маршруту поездки
+                x-data-source: trip_request.trip_fare_id 
+                example: MSK-ECONOM-202504-V2 
+              
+              estimated_cost:
+                type: number
+                description: Расчётная стоимость поездки на момент создания заявки
+                format: положительное число. Точность два знака после запятой
+                x-dev-notes: trip_request.cost 
+                example: 348.32
+              
+              desired_start_time:
+                type: string
+                description: Желаемая дата и время начала поездки
+                x-data-source: trip_request.desired_start_time 
+                format:  timestamp with time zone
+                example: 2025-04-30 19:41:00+03
+              
+              estimated_duration:
+                type: integer
+                description: Расчетное время в пути 
+                format: целое число секунд
+                x-data-source: trip_request.estimated_duration 
+                example: 1560
+              
+              estimated_distance:
+                type: integer
+                description: Расчетное расстояние 
+                format: целое число метров
+                x-data-source: trip_request.estimated_distance 
+                example: 1785
+              
+              start_location:
+                type: string
+                description: координаты стартовой точки 
+                format: долгота, широта в формате WGS-84
+                x-data-source: trip_request.start_location 
+                example: 134.854434 -25.856081
+              
+              start_address:
+                type: string
+                description: человекочитаемый адрес стартовой точки 
+                format: произвольный
+                x-data-source: trip_request.start_address 
+                example: г. Москва, ул. Ленина, д. 1
+              
+              finish_location:
+                type: string
+                description: координаты финишной точки 
+                format: долгота, широта в формате WGS-84
+                x-data-source: trip_request.finish_location 
+                example: 134.854412 -25.828084
+              
+              finish_address:
+                type: string
+                description: человекочитаемый адрес финишной точки 
+                format: произвольный
+                x-data-source: trip_request.finish_location 
+                example: г. Москва, ул. Арбат, д. 10      
+              
+              route_to_start:
+                type: object
+                description: Подача в точку подбора
+                properties:
+                  start_location:
+                    type: string
+                    description: координаты стартовой точки [долгота, широта] в формате WGS-84
+                    example: 134.854789 -25.8280235
+              
+                  start_address:
+                    type: string
+                    description: человекочитаемый адрес стартовой точки 
+                    format: произвольный
+                    example: г. Москва, ул. Сходненская, д. 1
+              
+                  finish_location:
+                    type: string
+                    description: координаты финишной точки 
+                    format: долгота, широта в формате WGS-84
+                    example: 134.854412 -25.828084
+              
+                  finish_address:
+                    type: string
+                    description: человекочитаемый адрес финишной точки 
+                    format: произвольный
+                    example: г. Москва, ул. Ленина, д. 1  
+                    
+                  estimated_duration:
+                    type: integer
+                    description: Время в пути до точки подачи по расчёту, в секундах 
+                    format: целое число секунд
+                    example: 420
+              
+                  estimated_distance:
+                    type: integer
+                    description: Расстояние до точки подачи по расчёту, в метрах
+                    format: целое число метров
+                    example: 2056
+                   
+                  navi:
+                    type: string
+                    description: URL для построения маршрута из стартовой точки до точки подачи в Яндекс Навигаторе
+                    format: yandexnavi://build_route_on_map?lat_from={lat}&lon_from={lon}&lat_to={lat}&lon_to={lon}
+                    example: yandexnavi://build_route_on_map?lat_from=55.7515&lon_from=37.5736&lat_to=55.7558&lon_to=37.6176 
+                    
+                  trip_fare_id:
+                    type: string
+                    description: Тариф, применяемый к маршруту до точки подачи
+                    example: MSK-ECONOM-202504-V2
+                    
+        '206':
+          description: route_to_start_unavailable
+          x-message: Сервис расчета маршрута недоступен. Не удалось получить расчет маршрута, километража и времени до начальной точки
+          examples:
+            application/json:
+              trip:
+                type: object
+                properties:
+                  id: a3bb189e-8bf9-3888-9912-ace4e6543002
+                  number: TP2504-000001
+                  created_at: '2025-04-30 11:41:00+03'
+                  driver_id: f47ac10b-58cc-4372-a567-0e02b2c3d479
+                  request_id: a3bb189e-8bf9-3888-9912-ace4e6543002
+                  trip_fare: MSK-ECONOM-202504-V2
+                  status_id: Started
+                  status_date: '2025-04-30 11:41:00+03'
+                  desired_time: '2025-05-30 21:41:00+03'
+                  route_to_start:
+                  start_location: 134.784412 -25.828084
+
+        '203':
+          description: request_unavailable
+          x-detail: Невозможно подтвердить актуальность заявки. Необходимо связаться с клиентом до начала движения
+          examples:
+            application/json:
+              trip:
+                type: object
+                properties:
+                  id: a3bb189e-8bf9-3888-9912-ace4e6543002
+                  number: TP2504-000001
+                  created_at: '2025-04-30 11:41:00+03'
+                  driver_id: f47ac10b-58cc-4372-a567-0e02b2c3d479
+                  request_id: null
+                  trip_fare: MSK-ECONOM-202504-V2
+                  status_id: Started
+                  status_date: '2025-04-30 11:41:00+03'
+        '422':
+          description: wrong_driver
+          x-title: В Заявке другой водитель
+          x-detail: Создать поездку на основании заявки может только указанный в ней водитель
+          examples:
+            application/json:
+              type: wrong_driver
+              status: 422
+              title: В Заявке другой водитель
+              detail: Создать поездку на основании заявки может только указанный в ней водитель
+        '416':
+          description: invalid_start_location
+          x-title: Вне зоны обслуживания
+          x-detail: Для создания поездки водитель должен находиться в зоне обслуживания
+          examples:
+            application/json:
+              type: invalid_start_location
+              status: 416
+              title: Вне зоны обслуживания
+              detail: Для создания поездки водитель должен находиться в зоне обслуживания
+        '403':
+          description: wrong_driver_status
+          x-title: Неверный статус водителя
+          x-detail: Создание Поездки доступно только для водителей в статус Свободен / На перерыве
+          examples:
+            application/json:
+              type: wrong_driver_status
+              status: 403
+              title: Неверный статус водителя
+              detail: Создание Поездки доступно только для водителей в статус Свободен / На перерыве
+        '424':
+          description: wrong_request_status
+          x-title: Неверный статус заявки
+          x-detail: Текущий статус Заявки отличается от  Назначен водитель. Создание поездки для заявки в любом другом статусе недоступно
+          examples:
+            application/json:
+              type: wrong_request_status
+              status: 424
+              title: Неверный статус заявки
+              detail: Текущий статус Заявки отличается от  Назначен водитель. Создание поездки для заявки в любом другом статусе недоступно
+        '503':
+          description: system_offline
+          x-title: Сервис не отвечает
+          x-detail: Один из внутренних сервисов не ответил в отведённое время. Ответ не может быть сформирован штатно. Код трассировки [код, по которому можно найти запись в GrayLog]
+          examples:
+            application/json:
+              type: system_offline
+              status: 424
+              title: Сервис не отвечает
+              detail: Один из внутренних сервисов не ответил в отведённое время. Ответ не может быть сформирован штатно. Код трассировки [код, по которому можно найти запись в GrayLog]
+  
+  /trips/{trip_id}:
+    get:
+      tags:
+      - trips
+      summary: Чтение данных поездки
+      responses:
+        '200':
+          description: OK
+      parameters:
+      - name: trip_id
+        type: string
+        in: path
+        description: ID
+        required: true
+        
+    put:
+      tags:
+      - trips
+      summary: Изменение статуса поездки
+      x-dev-notes: Эндпоинт используется в сценариях <Водитель по Заявке прибыл в начальную точку, Водитель отменил поездку по заявке, Водитель начал выполнение Заявки, Водитель по Заявке  прибыл в конечную точку, Водитель без заявки прибыл в конечную точку>
+      responses:
+        '200':
+          description: OK
+      parameters:
+      - name: trip_id
+        type: string
+        in: path
+        description: ID
+        required: true
+
+  /trips/{trip_id}/trip-status-history:
+    get:
+      tags:
+      - trips
+      summary: Чтение истории статусов поездки 
+      responses:
+        '200':
+          description: OK
+      parameters:
+      - name: trip_id
+        type: string
+        required: true
+        in: path 
+  
+  /trip-fares:
+    get:
+      tags:
+      - trip-fares
+      summary: Получение списка тарифов
+      responses:
+        '200':
+          description: OK
+  
+  /trip-fares/{trip-fare_id}:
+    get:
+      tags:
+      - trip-fares
+      summary: Чтение данных Тарифа
+      responses:
+        '200':
+          description: OK
+      parameters:
+      - name: trip-fare_id
+        type: string
+        in: path
+        required: true
+        
+  /addresses:
+    get:
+      tags:
+      - addresses
+      summary: Получение списка адресов
+      responses:
+        '200':
+          description: OK
+
+
+
+
+# Added by API Auto Mocking Plugin
+# host: mytaxi.ru
+# basePath: /api/v1/
+schemes:
+ - https
+
+definitions:
+  id:
+        type: string
+        description: валидный GUID экземпляра
+        format: GUID длиной 36 символов вместе с разделителями
+        example: f47ac10b-58cc-4372-a567-0e02b2c3d479
+  trip_fare_id:
+        type: string
+        description: Уникальный идентификатор тарифа
+        example: MSK-ECONOM-202504-V2 
+
+  created_at:
+        type: string
+        description: Дата и время создания экземпляра
+        format: timestamp with time zone
+        example: 2025-04-30 11:41:00+03
+  number: 
+        type: string
+        description: Человекочитаемый номер экземпляра
+        format: 2 латинские буквы+2 цифры номера суток в месяце+2 цифры номера месяца+дефис+порядковый номер в рамках суток, 6 цифр
+        example: VS2312-000567
+  status:
+        type: string
+        description: Идентификатор текущего статуса 
+        example: Started
+  status_set_at:
+        type: string
+        description: Дата и время установки текущего статуса
+        format: timestamp with time zone
+        example: 2025-04-30 11:41:00+03
+  is_deleted:
+        type: boolean
+        description: Признак логического удаления экземпляра
+        format: Значение по умолчанию = false. При удалении устанвливается true
+        example: false
+        
+  start_location:
+            type: string
+            description: координаты стартовой точки 
+            format: долгота, широта в формате WGS-84
+            example: 134.854434 -25.856081
+  start_address:
+            type: string
+            description: человекочитаемый адрес стартовой точки 
+            format: произвольный
+            example: г. Москва, ул. Сходненская, д. 1
+  finish_location:
+            type: string
+            description: координаты финишной точки 
+            format: долгота, широта в формате WGS-84
+            example: 134.854412 -25.828084
+  finish_address:
+            type: string
+            description: человекочитаемый адрес финишной точки 
+            format: произвольный
+            example: г. Москва, ул. Сретенка, д. 1
+  
+  
+  estimated_duration:
+        type: integer
+        description: Расчетное время в пути 
+        format: целое число секунд
+        example: 1560
+  
+  estimated_distance:
+        type: integer
+        description: Расчетное расстояние 
+        format: целое число метров
+        example: 1785
+  navi:
+        type: string
+        description: URL для построения маршрута в Яндекс Навигаторе 
+        format: yandexnavi://build_route_on_map?lat_from={lat}&lon_from={lon}&lat_to={lat}&lon_to={lon}
+        example: yandexnavi://build_route_on_map?lat_from=55.7515&lon_from=37.5736&lat_to=55.7558&lon_to=37.6176
+  
+  duration:
+        type: integer
+        description: Время в пути 
+        format: целое число секунд
+        example: 15789
+  
+  distance:
+        type: integer
+        description: Расстояние 
+        format: целое число метров
+        example: 2056
+  
+  desired_start_time:
+        type: string
+        description: Желаемая дата и время начала поездки
+        format:  timestamp with time zone
+        example: 2025-04-30 19:41:00+03
+  
+  cost:
+    type: number
+    description: Стоимость. Валюта задается в TripFareID
+    format:  положительное число. Точность два знака после запятой
+    example: 348.32
+  
+  
+  driver_id:
+        type: string
+        description: валидный GUID Водителя
+        format: GUID длиной 36 символов вместе с разделителями
+        example: f47ac10b-58cc-4372-a567-0e02b2c3d490
+  
+  request_id:
+        type: string
+        description: валидный GUID Заявки
+        format: GUID длиной 36 символов вместе с разделителями
+        example: f47ac10b-58cc-4372-a567-0e02b2c3d479
+      
+
+
+tags:
+  - name: customers
+    description: Операции с клиентами
+  - name: trips
+    description: Операции с поездками
+  - name: requests
+    description: Операции с заявками
+  - name: trip-fares
+    description: Операции с тарифами на поездки
+  - name: addresses
+    description: Операции с адресами
+  
+# Added by API Auto Mocking Plugin
+host: virtserver.swaggerhub.com
+basePath: /MARGIRB/AWGTaxiService/1.0.0
